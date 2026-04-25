@@ -62,7 +62,11 @@ import {
   Shuffle,
   X,
   Zap,
-  Edit3
+  Edit3,
+  Clock,
+  ArrowUpCircle,
+  Disc,
+  FolderOpen
 } from 'lucide-react';
 
 export const Icons = {
@@ -129,5 +133,9 @@ export const Icons = {
   Shuffle,
   X,
   Zap,
-  Edit3
+  Edit3,
+  Clock,
+  ArrowUpCircle,
+  Disc,
+  FolderOpen
 };

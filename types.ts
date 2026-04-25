@@ -41,6 +41,14 @@ export interface User {
   avatar: string;
 }
 
+export interface WordItem {
+  word: string;
+  pronunciation: string;
+  pos: string; // part of speech (e.g. n. vt.)
+  translation: string;
+  isSaved?: boolean;
+}
+
 export interface ApiResponse<T> {
   code: number;
   message: string;

@@ -7,6 +7,7 @@ import { Lesson } from '../types';
 import { DictionaryModal } from './DictionaryModal';
 import { SentenceAnalysisModal } from './SentenceAnalysisModal';
 import { NotesTab } from './NotesTab';
+import WordTrainingPanel from './WordTrainingPanel';
 
 interface LessonPlayerPageProps {
   lesson: Lesson;
@@ -30,6 +31,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
   // New states for dictionary and sentence analysis
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [analyzedSentence, setAnalyzedSentence] = useState<{english: string, chinese: string} | null>(null);
+  const [showWordTraining, setShowWordTraining] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -252,7 +254,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                   src={lesson.mediaUrl}
                   poster={lesson.coverUrl}
                   className="absolute inset-0 w-full h-full object-contain cursor-pointer"
-                  onClick={(e) => { e.stopPropagation(); setShowOverlayControls(true); togglePlay(); }}
+                  onClick={(e) => { e.stopPropagation(); setShowOverlayControls(true); }}
                   onTimeUpdate={handleTimeUpdate}
                   onLoadedMetadata={handleLoadedMetadata}
                   onEnded={handleEnded}
@@ -271,24 +273,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                     <button onClick={onBack} className="p-1 text-white active:scale-95 -ml-1">
                       <ChevronLeft size={24} />
                     </button>
-                    {/* Icons inside header */}
-                    <div className="flex items-center gap-3 text-white">
-                        <button className="active:scale-95">
-                          <Icons.Languages size={20} />
-                        </button>
-                        <button className="active:scale-95">
-                          <Icons.Moon size={20} />
-                        </button>
-                        <button className="active:scale-95">
-                          <Icons.PlusSquare size={20} />
-                        </button>
-                        <button className="active:scale-95">
-                          <Icons.Youtube size={20} />
-                        </button>
-                        <button className="active:scale-95">
-                          <Icons.MoreVertical size={20} />
-                        </button>
-                    </div>
+                    {/* Top right buttons removed per requirement */}
                   </div>
 
                   {/* Bottom Overlay Controls (Play, Skip, Progress) */}
@@ -343,7 +328,29 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                       </div>
 
                       {/* Right Fullscreen Icon */}
-                      <button className="text-white active:scale-95">
+                      <button 
+                        className="text-white active:scale-95"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          if (document.fullscreenElement) {
+                            await document.exitFullscreen().catch(err => console.log(err));
+                          } else {
+                            if (videoRef.current) {
+                              try {
+                                await videoRef.current.requestFullscreen();
+                                // Attempt to lock to landscape on mobile devices
+                                if (screen.orientation && screen.orientation.lock) {
+                                  await screen.orientation.lock('landscape').catch(() => {
+                                      // Ignore error if locking is not supported or permitted
+                                  });
+                                }
+                              } catch (err) {
+                                console.error("Error attempting to enable fullscreen:", err);
+                              }
+                            }
+                          }
+                        }}
+                      >
                           <Icons.Maximize size={16} />
                       </button>
                   </div>
@@ -436,7 +443,13 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                                       {sentence.text.split(' ').map((word, i) => (
                                           <span 
                                               key={i} 
-                                              onDoubleClick={(e) => { e.stopPropagation(); setSelectedWord(word); }}
+                                              onDoubleClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                setSelectedWord(word);
+                                                if (isVideo && videoRef.current) videoRef.current.pause();
+                                                if (!isVideo && audioRef.current) audioRef.current.pause();
+                                                setIsPlaying(false);
+                                              }}
                                               className="cursor-pointer active:bg-black/5 md:hover:bg-black/5 rounded transition-colors"
                                           >
                                               {word}{' '}
@@ -446,6 +459,9 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                                           onClick={(e) => { 
                                               e.stopPropagation(); 
                                               setAnalyzedSentence({english: sentence.text, chinese: sentence.translation}); 
+                                              if (isVideo && videoRef.current) videoRef.current.pause();
+                                              if (!isVideo && audioRef.current) audioRef.current.pause();
+                                              setIsPlaying(false);
                                           }}
                                           className="ml-2 inline-flex items-center justify-center -translate-y-[2px] active:scale-90 transition-transform p-1 bg-gray-50 rounded"
                                       >
@@ -556,7 +572,15 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                   </button>
 
                   {/* Vocabulary */}
-                  <button className="flex flex-col items-center gap-1 text-gray-500 active:scale-95 transition-transform">
+                  <button 
+                      onClick={() => {
+                          setShowWordTraining(true);
+                          if (isVideo && videoRef.current) videoRef.current.pause();
+                          if (!isVideo && audioRef.current) audioRef.current.pause();
+                          setIsPlaying(false);
+                      }}
+                      className="flex flex-col items-center gap-1 text-gray-500 active:scale-95 transition-transform"
+                  >
                       <Icons.BookOpen size={18} className="text-[#333]" strokeWidth={1.5} />
                       <span className="text-[9px] text-gray-500 mt-0.5">单词训练</span>
                   </button>
@@ -632,6 +656,12 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
               englishText={analyzedSentence.english} 
               chineseText={analyzedSentence.chinese} 
               onClose={() => setAnalyzedSentence(null)} 
+          />
+      )}
+      {showWordTraining && (
+          <WordTrainingPanel 
+              lessonId={lesson.id} 
+              onClose={() => setShowWordTraining(false)} 
           />
       )}
     </div>

@@ -36,16 +36,14 @@ const CategoryListPage: React.FC<CategoryListPageProps> = ({ categoryName, onBac
   if (categoryName === '有声读物') {
       return (
         <div className="flex flex-col h-full bg-white">
-          <header className="pt-4 px-4 pb-0 flex flex-col bg-white z-10">
-             <div className="flex items-center justify-between h-12">
-               <button onClick={onBack} className="flex items-center text-gray-800 absolute left-4 z-10">
-                  <Icons.ChevronLeft size={28} />
-                  <span className="text-[17px] ml-0.5 whitespace-nowrap">全部资源</span>
+          <header className="h-12 flex items-center justify-center relative bg-white z-10">
+               <button onClick={onBack} className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center text-gray-800 z-10">
+                  <Icons.ChevronLeft size={24} />
+                  <span className="text-[16px] ml-0.5 whitespace-nowrap">全部资源</span>
                </button>
-               <h1 className="text-lg font-medium absolute left-1/2 -translate-x-1/2 w-full text-center truncate px-24">
+               <h1 className="text-[17px] font-medium text-center truncate px-24">
                  {categoryName}
                </h1>
-             </div>
           </header>
 
           <div className="flex overflow-x-auto hide-scrollbar border-b border-gray-100 bg-white">
@@ -101,11 +99,11 @@ const CategoryListPage: React.FC<CategoryListPageProps> = ({ categoryName, onBac
   return (
     <div className="flex flex-col h-full bg-white relative">
       {/* Header (Fixed) */}
-      <header className="pt-4 pb-3 flex items-center justify-center relative bg-white z-20 border-b border-gray-100/60 flex-shrink-0 min-h-[44px]">
-          <button onClick={onBack} className="absolute left-4 z-10 text-gray-800">
-              <Icons.ChevronLeft size={28} />
+      <header className="h-12 flex items-center justify-center relative bg-white z-20 border-b border-gray-100/60 flex-shrink-0">
+          <button onClick={onBack} className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center text-gray-800 z-10">
+              <Icons.ChevronLeft size={24} />
           </button>
-          <h1 className="text-lg font-medium text-center truncate px-12">
+          <h1 className="text-[17px] font-medium text-center truncate px-12">
               {categoryName}
           </h1>
       </header>
