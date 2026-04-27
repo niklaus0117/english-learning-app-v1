@@ -37,6 +37,10 @@ function App() {
   const [collectedLessons, setCollectedLessons] = useState<Lesson[]>(MOCK_LESSONS.slice(0, 3));
   const [downloadedLessons, setDownloadedLessons] = useState<Lesson[]>([]);
 
+  // Swipe Gesture Ref
+  const touchStartX = React.useRef(0);
+  const touchStartY = React.useRef(0);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -99,6 +103,50 @@ function App() {
       }
       setCurrentView('lessonPlayer');
     });
+  };
+
+  const executeBackNavigation = () => {
+      if (currentView === 'main') return;
+      
+      switch (currentView) {
+          case 'dailyReading':
+          case 'cache':
+          case 'categoryList':
+          case 'morningReading':
+              setCurrentView('main');
+              break;
+          case 'courseDetail':
+              setCurrentView(courseDetailSourceView);
+              break;
+          case 'categoryDetail':
+              setCurrentView('categoryList');
+              break;
+          case 'lessonPlayer':
+              setCurrentView(lessonPlayerSourceView === 'bookshelf' ? 'main' : lessonPlayerSourceView);
+              break;
+          default:
+              setCurrentView('main');
+      }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+      touchStartX.current = e.changedTouches[0].screenX;
+      touchStartY.current = e.changedTouches[0].screenY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+      const touchEndX = e.changedTouches[0].screenX;
+      const touchEndY = e.changedTouches[0].screenY;
+      
+      const deltaX = touchEndX - touchStartX.current;
+      const MathAbsDeltaY = Math.abs(touchEndY - touchStartY.current);
+
+      // Detect swipe right: significant X movement, relatively small Y movement
+      if (deltaX > 60 && deltaX > MathAbsDeltaY * 1.5) {
+          // Additional check: maybe restrict to swiping from the left edge?
+          // if (touchStartX.current < 50) { ... }
+          executeBackNavigation();
+      }
   };
 
   const renderCurrentView = () => {
@@ -416,7 +464,11 @@ function App() {
   };
 
   return (
-    <div className="h-[100dvh] bg-white max-w-md mx-auto relative shadow-2xl overflow-hidden flex flex-col">
+    <div 
+        className="h-[100dvh] bg-white max-w-md mx-auto relative shadow-2xl overflow-hidden flex flex-col pt-safe pb-safe"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+    >
       {renderCurrentView()}
 
       {/* Login Modal */}

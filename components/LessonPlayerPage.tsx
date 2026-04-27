@@ -35,6 +35,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const playPromiseRef = useRef<Promise<void> | null>(null);
 
   // Tabs at the top
   const [activeTab, setActiveTab] = useState('原文');
@@ -73,18 +74,47 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
     return () => clearTimeout(timeout);
   }, [isPlaying, showOverlayControls]);
 
-  // Handle Play/Pause
-  const togglePlay = () => {
+  const safePlay = () => {
     const mediaElement = isVideo ? videoRef.current : audioRef.current;
     if (mediaElement) {
-      if (isPlaying) {
-        mediaElement.pause();
-      } else {
-        mediaElement.play().catch(e => console.error("Playback failed", e));
+      const p = mediaElement.play();
+      if (p !== undefined) {
+        playPromiseRef.current = p;
+        p.then(() => {
+          playPromiseRef.current = null;
+        }).catch((e) => {
+          playPromiseRef.current = null;
+          if (e.name !== 'AbortError') console.error("Playback failed", e);
+        });
       }
     } else if (!isVideo) {
-        // Fallback mock simulation if no real media URL
-        setIsPlaying(!isPlaying);
+      setIsPlaying(true);
+    }
+  };
+
+  const safePause = () => {
+    const mediaElement = isVideo ? videoRef.current : audioRef.current;
+    if (mediaElement) {
+      if (playPromiseRef.current) {
+        playPromiseRef.current.then(() => {
+          mediaElement.pause();
+        }).catch(() => {
+          // Play was aborted, no need to pause or log anything
+        });
+      } else {
+        mediaElement.pause();
+      }
+    } else if (!isVideo) {
+      setIsPlaying(false);
+    }
+  };
+
+  // Handle Play/Pause
+  const togglePlay = () => {
+    if (isPlaying) {
+      safePause();
+    } else {
+      safePlay();
     }
   };
 
@@ -219,7 +249,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
       const mediaElement = isVideo ? videoRef.current : audioRef.current;
       if (mediaElement) {
           mediaElement.currentTime = startTime;
-          mediaElement.play().catch(e => console.error(e));
+          safePlay();
       } else {
           setIsPlaying(true);
       }
@@ -446,8 +476,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                                               onDoubleClick={(e) => { 
                                                 e.stopPropagation(); 
                                                 setSelectedWord(word);
-                                                if (isVideo && videoRef.current) videoRef.current.pause();
-                                                if (!isVideo && audioRef.current) audioRef.current.pause();
+                                                safePause();
                                                 setIsPlaying(false);
                                               }}
                                               className="cursor-pointer active:bg-black/5 md:hover:bg-black/5 rounded transition-colors"
@@ -461,6 +490,8 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                                               setAnalyzedSentence({english: sentence.text, chinese: sentence.translation}); 
                                               if (isVideo && videoRef.current) videoRef.current.pause();
                                               if (!isVideo && audioRef.current) audioRef.current.pause();
+                                              setIsPlaying(false);
+                                              safePause();
                                               setIsPlaying(false);
                                           }}
                                           className="ml-2 inline-flex items-center justify-center -translate-y-[2px] active:scale-90 transition-transform p-1 bg-gray-50 rounded"
@@ -575,8 +606,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                   <button 
                       onClick={() => {
                           setShowWordTraining(true);
-                          if (isVideo && videoRef.current) videoRef.current.pause();
-                          if (!isVideo && audioRef.current) audioRef.current.pause();
+                          safePause();
                           setIsPlaying(false);
                       }}
                       className="flex flex-col items-center gap-1 text-gray-500 active:scale-95 transition-transform"
