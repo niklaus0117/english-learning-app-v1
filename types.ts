@@ -24,6 +24,10 @@ export interface Lesson {
   mediaType?: 'audio' | 'video';
   mediaUrl?: string;
   coverUrl?: string;
+  subtitles?: LessonSentence[];
+  lastPlaybackPosition?: number; // in seconds
+  playbackRate?: number;
+  loopMode?: 'order' | 'channel-repeat' | 'repeat' | 'shuffle' | 'single';
 }
 
 export interface LessonSentence {

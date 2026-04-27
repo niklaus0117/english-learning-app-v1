@@ -21,32 +21,6 @@ const SAMPLE_AUDIO_2 = 'https://www.w3schools.com/html/horse.mp3';
 const SAMPLE_VIDEO_1 = 'https://media.w3.org/2010/05/sintel/trailer.mp4';
 const SAMPLE_VIDEO_2 = 'https://media.w3.org/2010/05/bunny/trailer.mp4';
 
-// Specific Lesson Lists
-const LESSONS_SCIENCE: Lesson[] = [
-  { id: 'sci1', title: '1. The Solar System 太阳系', duration: '02:15', isLearned: false, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_1, coverUrl: 'https://picsum.photos/400/225?random=101' },
-  { id: 'sci2', title: '2. Water Cycle 水循环', duration: '03:40', isLearned: false, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_2, coverUrl: 'https://picsum.photos/400/225?random=102' },
-  { id: 'sci3', title: '3. Plant Growth 植物生长', duration: '04:10', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_1 },
-];
-
-const LESSONS_DAILY: Lesson[] = [
-  { id: 'day1', title: '1. A Wonderful Weekend 一个美好的周末', duration: '05:30', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_1 },
-  { id: 'day2', title: '2. Morning Routine 晨间日常', duration: '04:20', isLearned: true, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_1, coverUrl: 'https://picsum.photos/400/225?random=103' },
-  { id: 'day3', title: '3. At the Supermarket 在超市', duration: '06:15', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_2 },
-];
-
-const LESSONS_SPEECH: Lesson[] = [
-  { id: 'sp1', title: '1. I Have a Dream (Excerpt)', duration: '10:05', isLearned: false, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_2, coverUrl: 'https://picsum.photos/400/225?random=104' },
-  { id: 'sp2', title: '2. Stay Hungry, Stay Foolish', duration: '14:20', isLearned: false, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_1, coverUrl: 'https://picsum.photos/400/225?random=105' },
-];
-
-const LESSONS_CLASSIC: Lesson[] = [
-  { id: 'cl1', title: '1. The Little Prince - Ch 1', duration: '08:30', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_1 },
-  { id: 'cl2', title: '2. Alice in Wonderland - Ch 1', duration: '12:45', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_2 },
-];
-
-// Fallback lessons for older components
-export const MOCK_LESSONS: Lesson[] = LESSONS_DAILY;
-
 export const MOCK_LESSON_TRANSCRIPT: LessonSentence[] = [
   { id: 's1', text: 'To follow in the footsteps of our robot pioneers and explore the planets of our solar system.', translation: '跟随机器先驱的脚步，探索我们太阳系的行星。', startTime: 0, duration: 25 },
   { id: 's2', text: 'Imagine boarding a flight to Saturn.', translation: '想象一下搭乘飞往土星的航班。', startTime: 25, duration: 5 },
@@ -59,6 +33,32 @@ export const MOCK_LESSON_TRANSCRIPT: LessonSentence[] = [
   { id: 's9', text: 'Some of the pictures are to die for.', translation: '有些照片简直美得令人窒息。', startTime: 63, duration: 4 },
   { id: 's10', text: 'But the postcards only tell part of the story.', translation: '但这些明信片段只讲述了部分故事。', startTime: 67, duration: 5 }
 ];
+
+// Specific Lesson Lists
+const LESSONS_SCIENCE: Lesson[] = [
+  { id: 'sci1', title: '1. The Solar System 太阳系', duration: '02:15', isLearned: false, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_1, coverUrl: 'https://picsum.photos/400/225?random=101', subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 0, playbackRate: 1.0, loopMode: 'order' },
+  { id: 'sci2', title: '2. Water Cycle 水循环', duration: '03:40', isLearned: false, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_2, coverUrl: 'https://picsum.photos/400/225?random=102', subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 30, playbackRate: 1.25, loopMode: 'repeat' },
+  { id: 'sci3', title: '3. Plant Growth 植物生长', duration: '04:10', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_1, subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 0, playbackRate: 1.0, loopMode: 'order' },
+];
+
+const LESSONS_DAILY: Lesson[] = [
+  { id: 'day1', title: '1. A Wonderful Weekend 一个美好的周末', duration: '05:30', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_1, subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 15, playbackRate: 1.0, loopMode: 'order' },
+  { id: 'day2', title: '2. Morning Routine 晨间日常', duration: '04:20', isLearned: true, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_1, coverUrl: 'https://picsum.photos/400/225?random=103', subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 60, playbackRate: 1.5, loopMode: 'single' },
+  { id: 'day3', title: '3. At the Supermarket 在超市', duration: '06:15', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_2, subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 0, playbackRate: 1.0, loopMode: 'order' },
+];
+
+const LESSONS_SPEECH: Lesson[] = [
+  { id: 'sp1', title: '1. I Have a Dream (Excerpt)', duration: '10:05', isLearned: false, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_2, coverUrl: 'https://picsum.photos/400/225?random=104', subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 0, playbackRate: 1.0, loopMode: 'order' },
+  { id: 'sp2', title: '2. Stay Hungry, Stay Foolish', duration: '14:20', isLearned: false, mediaType: 'video', mediaUrl: SAMPLE_VIDEO_1, coverUrl: 'https://picsum.photos/400/225?random=105', subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 0, playbackRate: 1.0, loopMode: 'order' },
+];
+
+const LESSONS_CLASSIC: Lesson[] = [
+  { id: 'cl1', title: '1. The Little Prince - Ch 1', duration: '08:30', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_1, subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 0, playbackRate: 1.0, loopMode: 'order' },
+  { id: 'cl2', title: '2. Alice in Wonderland - Ch 1', duration: '12:45', isLearned: false, mediaType: 'audio', mediaUrl: SAMPLE_AUDIO_2, subtitles: MOCK_LESSON_TRANSCRIPT, lastPlaybackPosition: 0, playbackRate: 1.0, loopMode: 'order' },
+];
+
+// Fallback lessons for older components
+export const MOCK_LESSONS: Lesson[] = LESSONS_DAILY;
 
 export const MOCK_COURSES: Course[] = [
   {

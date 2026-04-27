@@ -17,16 +17,18 @@ interface LessonPlayerPageProps {
 const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeSentenceId, setActiveSentenceId] = useState<string>('s1');
-  const [playbackSpeed, setPlaybackSpeed] = useState(1.0);
+  const [playbackSpeed, setPlaybackSpeed] = useState(lesson.playbackRate || 1.0);
   const [showChinese, setShowChinese] = useState(true);
-  const [playMode, setPlayMode] = useState<'order' | 'repeat' | 'single'>('order');
-  const [currentTime, setCurrentTime] = useState(0);
+  const [playMode, setPlayMode] = useState<'order' | 'channel-repeat' | 'repeat' | 'shuffle' | 'single'>(lesson.loopMode || 'order');
+  const [currentTime, setCurrentTime] = useState(lesson.lastPlaybackPosition || 0);
   const [duration, setDuration] = useState(38); // Default mock duration
   const [showOverlayControls, setShowOverlayControls] = useState(true);
   
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showPlayModeMenu, setShowPlayModeMenu] = useState(false);
   const [isBottomCollapsed, setIsBottomCollapsed] = useState(false);
+
+  const subtitlesToUse = lesson.subtitles || MOCK_LESSON_TRANSCRIPT;
 
   // New states for dictionary and sentence analysis
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
@@ -134,8 +136,21 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
     const time = e.currentTarget.currentTime;
     setCurrentTime(time);
     
-    // Sync transcript
-    const currentSentence = MOCK_LESSON_TRANSCRIPT.find(
+    // Check if we are in single sentence loop mode
+    if (playMode === 'single') {
+        const currentActive = subtitlesToUse.find(s => s.id === activeSentenceId);
+        if (currentActive) {
+            // If we've passed the sentence boundaries, loop back to the start of this sentence
+            if (time >= currentActive.startTime + currentActive.duration || time < currentActive.startTime) {
+                e.currentTarget.currentTime = currentActive.startTime;
+                setCurrentTime(currentActive.startTime);
+                return;
+            }
+        }
+    }
+    
+    // Sync transcript (only if not in 'single' mode looping)
+    const currentSentence = subtitlesToUse.find(
         s => time >= s.startTime && time < (s.startTime + s.duration)
     );
     if (currentSentence && currentSentence.id !== activeSentenceId) {
@@ -145,11 +160,24 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
 
   const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLMediaElement>) => {
     setDuration(e.currentTarget.duration);
+    
+    // Set initial playback position if provided and not started yet
+    if (lesson.lastPlaybackPosition && e.currentTarget.currentTime === 0) {
+        e.currentTarget.currentTime = lesson.lastPlaybackPosition;
+        setCurrentTime(lesson.lastPlaybackPosition);
+    }
   };
 
   const handleEnded = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
+    if (playMode === 'repeat') {
+        setCurrentTime(0);
+        const mediaElement = isVideo ? videoRef.current : audioRef.current;
+        if (mediaElement) mediaElement.currentTime = 0;
+        safePlay(); // replay
+    } else {
+        setIsPlaying(false);
+        setCurrentTime(0);
+    }
   };
 
   // Scroll active sentence into view
@@ -157,7 +185,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
     if (activeSentenceId) {
         const el = document.getElementById(`sentence-${activeSentenceId}`);
         if (el) {
-            const isFirstSentence = activeSentenceId === MOCK_LESSON_TRANSCRIPT[0]?.id;
+            const isFirstSentence = activeSentenceId === subtitlesToUse[0]?.id;
             
             if (isPlaying && !isFirstSentence) {
                 // Determine we are auto-playing and past first sentence
@@ -168,14 +196,14 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
             }
         }
     }
-  }, [activeSentenceId, isPlaying]);
+  }, [activeSentenceId, isPlaying, subtitlesToUse]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
       const currentScrollY = e.currentTarget.scrollTop;
       
       // The first sentence is below the title and AI banner.
       // We check if the scroll position is revealing the first sentence.
-      const firstSentenceId = MOCK_LESSON_TRANSCRIPT[0]?.id;
+      const firstSentenceId = subtitlesToUse[0]?.id;
       const firstSentenceEl = firstSentenceId ? document.getElementById(`sentence-${firstSentenceId}`) : null;
       const threshold = firstSentenceEl ? firstSentenceEl.offsetTop + 5 : 120;
       
@@ -209,12 +237,24 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
       interval = window.setInterval(() => {
         setCurrentTime(prev => {
            if (prev >= duration) {
+               if (playMode === 'repeat') {
+                   return 0; // loop whole mock track
+               }
                setIsPlaying(false);
                return 0;
            }
            const newTime = prev + 0.1;
            
-           const currentSentence = MOCK_LESSON_TRANSCRIPT.find(
+           if (playMode === 'single') {
+               const currentActive = subtitlesToUse.find(s => s.id === activeSentenceId);
+               if (currentActive) {
+                   if (newTime >= currentActive.startTime + currentActive.duration || newTime < currentActive.startTime) {
+                       return currentActive.startTime;
+                   }
+               }
+           }
+           
+           const currentSentence = subtitlesToUse.find(
                s => newTime >= s.startTime && newTime < (s.startTime + s.duration)
            );
            if (currentSentence && currentSentence.id !== activeSentenceId) {
@@ -226,7 +266,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
       }, 100);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, activeSentenceId, duration, lesson.mediaUrl]);
+  }, [isPlaying, activeSentenceId, duration, lesson.mediaUrl, subtitlesToUse, playMode]);
 
   // Handle speed change
   useEffect(() => {
@@ -459,7 +499,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
 
                   {/* Sentences */}
                   <div className="space-y-5">
-                      {MOCK_LESSON_TRANSCRIPT.map((sentence) => {
+                      {subtitlesToUse.map((sentence) => {
                           const isActive = activeSentenceId === sentence.id;
                           return (
                               <div 
