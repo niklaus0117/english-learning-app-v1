@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from './Icons';
+import { apiService } from '../services/api';
+import { Course } from '../types';
 
 interface CategoryListPageProps {
   categoryName: string;
@@ -10,9 +12,46 @@ interface CategoryListPageProps {
 const CategoryListPage: React.FC<CategoryListPageProps> = ({ categoryName, onBack, onItemClick }) => {
   const [activeTab, setActiveTab] = useState('全部');
   const [searchText, setSearchText] = useState('');
-  const [items, setItems] = useState<any[]>([]);
+  const [items, setItems] = useState<Course[]>([]);
+  const [categoryDescription, setCategoryDescription] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Mock fetching data based on category
+  useEffect(() => {
+    let ignore = false;
+
+    const loadItems = async () => {
+      setIsLoading(true);
+      setSearchText('');
+
+      try {
+        const categories = await apiService.getCategories();
+        const matchedCategory = categories.find(category => category.name === categoryName || category.code === categoryName);
+        const courses = matchedCategory
+          ? await apiService.getCoursesByCategory(matchedCategory.id)
+          : await apiService.getCourses();
+
+        if (!ignore) {
+          setCategoryDescription(matchedCategory?.description || `欢迎来到${categoryName}专区。这里汇集了本类目下最受欢迎的各类精选内容与专辑频道。`);
+          setItems(courses);
+        }
+      } catch (error) {
+        console.warn('Failed to load category list.', error);
+        if (!ignore) setItems([]);
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
+    };
+
+    loadItems();
+
+    return () => {
+      ignore = true;
+    };
+  }, [categoryName]);
+
+  const filteredItems = items.filter(item => item.title.includes(searchText) || item.subtitle?.includes(searchText));
+
+  /* Mock fetching data based on category
   useEffect(() => {
     setSearchText('');
     
@@ -31,6 +70,7 @@ const CategoryListPage: React.FC<CategoryListPageProps> = ({ categoryName, onBac
     }));
     setItems(mockData);
   }, [categoryName]);
+  */
 
   // Audiobooks layout layout
   if (categoryName === '有声读物') {
@@ -62,7 +102,7 @@ const CategoryListPage: React.FC<CategoryListPageProps> = ({ categoryName, onBac
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 pb-24 bg-white">
-            {items.map((item) => (
+            {filteredItems.map((item) => (
               <div 
                 key={item.id} 
                 className="flex gap-4 py-4 border-b border-gray-100 last:border-0 cursor-pointer active:bg-gray-50 transition-colors"
@@ -81,11 +121,11 @@ const CategoryListPage: React.FC<CategoryListPageProps> = ({ categoryName, onBac
                 {/* Content */}
                 <div className="flex-1 flex flex-col justify-center min-w-0">
                   <h3 className="text-base font-medium text-gray-900 truncate mb-1.5">{item.title}</h3>
-                  <p className="text-sm text-gray-500 mb-1.5">共{item.count}篇</p>
+                  <p className="text-sm text-gray-500 mb-1.5">{item.tags[0]}</p>
                   
                   <div className="flex items-center justify-between text-[13px] text-gray-400">
-                    <span className="truncate pr-2">{item.uploader ? item.uploader : `${item.playCount}播放`}</span>
-                    <span className="flex-shrink-0">{item.date}</span>
+                    <span className="truncate pr-2">{item.author || `${item.playCount}播放`}</span>
+                    <span className="flex-shrink-0">{item.accessType || 'FREE'}</span>
                   </div>
                 </div>
               </div>
@@ -132,28 +172,29 @@ const CategoryListPage: React.FC<CategoryListPageProps> = ({ categoryName, onBac
         {/* Category Intro */}
         <div className="px-4 py-3 bg-white border-b border-gray-50">
            <p className="text-[14px] text-gray-500 leading-relaxed mb-3">
-              欢迎来到{categoryName}专区。这里汇集了本类目下最受欢迎的各类精选内容与专辑频道，每日持续为您更新高质量视听素材。
+              {categoryDescription || `欢迎来到${categoryName}专区。这里汇集了本类目下最受欢迎的各类精选内容与专辑频道，每日持续为您更新高质量视听素材。`}
            </p>
            
            <div className="flex items-center gap-5 text-[12px] text-gray-400">
                <div className="flex items-center gap-1.5 flex-1">
                    <Icons.Film size={14} className="text-gray-300" />
-                   <span>1,208 频道</span>
+                   <span>{items.length} 课程</span>
                </div>
                <div className="flex items-center gap-1.5 flex-1 justify-center">
                    <Icons.FileText size={14} className="text-gray-300" />
-                   <span>84,392 文章</span>
+                   <span>{items.reduce((sum, item) => sum + (item.lessons?.length || 0), 0)} 课时</span>
                </div>
                <div className="flex items-center gap-1.5 flex-1 justify-end">
                    <Icons.ArrowDownUp size={14} className="text-green-500/70" />
-                   <span className="text-green-500">今日更新 12</span>
+                   <span className="text-green-500">后端数据</span>
                </div>
            </div>
         </div>
 
         {/* List */}
         <div className="px-4 pb-24 pt-2">
-          {items.map((item) => (
+          {isLoading && <div className="py-5 text-center text-sm text-gray-400">正在加载后端数据...</div>}
+          {filteredItems.map((item) => (
           <div 
             key={item.id} 
             className="flex gap-3 py-3 border-b border-gray-50 last:border-0 cursor-pointer active:bg-gray-50 transition-colors"
@@ -173,18 +214,18 @@ const CategoryListPage: React.FC<CategoryListPageProps> = ({ categoryName, onBac
             <div className="flex-1 flex flex-col justify-center min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <h3 className="text-base font-bold text-gray-900 truncate">{item.title}</h3>
-                {item.hasNotes && (
+                {item.accessType === 'GROUP' && (
                   <span className="text-[10px] text-blue-500 bg-blue-50 px-1 py-0.5 rounded border border-blue-100 flex-shrink-0">
                     讲义
                   </span>
                 )}
               </div>
               
-              <p className="text-[13px] text-gray-500 mb-1">共{item.count}篇 · {item.playCount}次播放</p>
+              <p className="text-[13px] text-gray-500 mb-1">{item.tags[0]} · {item.playCount}次播放</p>
               
               <div className="flex items-center justify-between text-xs text-gray-400">
-                <span className="truncate pr-2">{item.uploader}</span>
-                <span className="flex-shrink-0">{item.date}</span>
+                <span className="truncate pr-2">{item.author}</span>
+                <span className="flex-shrink-0">{item.accessType || 'FREE'}</span>
               </div>
             </div>
           </div>

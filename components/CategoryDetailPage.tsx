@@ -1,53 +1,52 @@
 import React, { useState } from 'react';
 import { Icons } from './Icons';
+import { Course, Lesson } from '../types';
 
 interface CategoryDetailPageProps {
   title: string;
+  course?: Course;
   onBack: () => void;
-  onItemClick?: (item: any) => void;
+  onItemClick?: (item: Lesson) => void;
 }
 
-const MOCK_EPISODES = [
+const MOCK_EPISODES: Lesson[] = [
   {
     id: 'e1',
     title: '《幕府将军》泽井杏奈对话《洛基》汤姆·希德勒斯顿 Anna Sawai & To...',
     duration: '38:26',
-    size: '127.62MB',
-    date: '2024-08-20',
-    imageUrl: 'https://picsum.photos/400/300?random=401',
-    hasTranslation: true,
+    isLearned: false,
+    mediaType: 'video',
+    coverUrl: 'https://picsum.photos/400/300?random=401',
   },
   {
     id: 'e2',
     title: '《烈火战车》安东尼·麦凯对话《小学风云》泰勒·詹姆斯·威廉姆 Anthon...',
     duration: '47:13',
-    size: '172.81MB',
-    date: '2024-08-05',
-    imageUrl: 'https://picsum.photos/400/300?random=402',
-    hasTranslation: true,
+    isLearned: false,
+    mediaType: 'video',
+    coverUrl: 'https://picsum.photos/400/300?random=402',
   },
   {
     id: 'e3',
     title: '《玛丽和乔治》尼古拉斯·加利齐纳对话《一天》利奥·伍德尔 Nicholas G...',
     duration: '33:06',
-    size: '120.83MB',
-    date: '2024-07-22',
-    imageUrl: 'https://picsum.photos/400/300?random=403',
-    hasTranslation: true,
+    isLearned: false,
+    mediaType: 'video',
+    coverUrl: 'https://picsum.photos/400/300?random=403',
   },
   {
     id: 'e4',
     title: '《早间新闻》詹妮弗·安妮斯顿对话《...》...',
     duration: '45:12',
-    size: '150.20MB',
-    date: '2024-07-10',
-    imageUrl: 'https://picsum.photos/400/300?random=404',
-    hasTranslation: true,
+    isLearned: false,
+    mediaType: 'video',
+    coverUrl: 'https://picsum.photos/400/300?random=404',
   }
 ];
 
-const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, onBack, onItemClick }) => {
+const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, course, onBack, onItemClick }) => {
   const [activeTab, setActiveTab] = useState('双语精选');
+  const episodes = course?.lessons?.length ? course.lessons : MOCK_EPISODES;
 
   return (
     <div className="flex flex-col h-full bg-white relative">
@@ -80,7 +79,7 @@ const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, onBack, 
 
         {/* Description */}
         <div className="px-4 mb-4 text-sm leading-relaxed text-white/90">
-          选自 Youtube 的 Variety 频道，《Actors on Actors》（演员对谈）是一档由《Variety》（综艺）主办的明星一对一谈话节目。在每一期节目中，主办方邀请两位优秀的职业演员，以聊天和谈话的形式，对职业生涯与表演艺术进行共同探讨。
+          {course?.description || '本课程内容包含视频精听、双语字幕、重点词汇和跟读训练。每个分类使用后端返回的不同课程与课时数据。'}
         </div>
 
         {/* Stats */}
@@ -88,16 +87,16 @@ const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, onBack, 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
               <Icons.PlayCircle size={14} />
-              <span>313万</span>
+              <span>{course?.playCount ?? 313}播放</span>
             </div>
             <div className="flex items-center gap-1">
               <Icons.Calendar size={14} />
-              <span>2025-04-12</span>
+              <span>{course?.accessType || 'FREE'}</span>
             </div>
           </div>
           <div className="bg-white/20 px-2 py-1 rounded flex items-center gap-1">
             <Icons.Type size={12} />
-            <span>词汇量6300</span>
+            <span>词汇量{course?.vocabularyCount ?? 6300}</span>
           </div>
         </div>
       </div>
@@ -127,7 +126,7 @@ const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, onBack, 
       {/* List */}
       <div className="px-4 pt-4 pb-24 bg-white">
 
-        {MOCK_EPISODES.map((item) => (
+        {episodes.map((item) => (
           <div 
             key={item.id} 
             className="flex gap-3 py-4 border-b border-gray-50 last:border-0 cursor-pointer"
@@ -135,7 +134,7 @@ const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, onBack, 
           >
             {/* Image */}
             <div className="relative w-[120px] h-[75px] rounded-lg overflow-hidden flex-shrink-0 bg-gray-200">
-              <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+              <img src={item.coverUrl || course?.imageUrl || 'https://picsum.photos/400/300?random=401'} alt={item.title} className="w-full h-full object-cover" />
               <div className="absolute top-1 right-1 bg-black/40 rounded-full p-0.5">
                 <Icons.Play className="text-white fill-white" size={12} />
               </div>
@@ -146,12 +145,12 @@ const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, onBack, 
               <h3 className="text-base text-gray-900 leading-tight line-clamp-2 mb-1">{item.title}</h3>
               
               <p className="text-xs text-gray-400 mb-1">
-                {item.duration} | {item.size}
+                {item.duration || '--:--'} | {item.mediaType === 'audio' ? '音频' : '视频'}
               </p>
               
               <div className="flex items-center text-xs text-gray-400 gap-1">
                 <Icons.Calendar size={12} />
-                <span>{item.date}</span>
+                <span>{item.isLearned ? '已学' : '未学'}</span>
               </div>
             </div>
 
@@ -160,7 +159,7 @@ const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, onBack, 
               <button className="p-1 text-gray-400">
                 <Icons.Download size={20} />
               </button>
-              {item.hasTranslation && (
+              {item.subtitles?.length !== 0 && (
                 <span className="text-[10px] text-gray-400 mt-1">(译文)</span>
               )}
             </div>
@@ -173,14 +172,14 @@ const CategoryDetailPage: React.FC<CategoryDetailPageProps> = ({ title, onBack, 
       {/* Mini Player for this page */}
       <div className="absolute bottom-0 left-0 right-0 bg-gray-100 border-t border-gray-200 flex items-center p-3 pb-safe z-50">
         <div className="w-10 h-10 rounded overflow-hidden flex-shrink-0 relative mr-3">
-          <img src="https://picsum.photos/100/100?random=401" className="w-full h-full object-cover" />
+          <img src={episodes[0]?.coverUrl || course?.imageUrl || 'https://picsum.photos/100/100?random=401'} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
              <Icons.Play className="text-white fill-white" size={16} />
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-medium text-gray-900 truncate">《幕府将军》泽井杏奈对话《洛基》汤姆·希德...</h4>
-          <p className="text-xs text-gray-500 truncate">ching "Loki," realized that we really shared the same th...</p>
+          <h4 className="text-sm font-medium text-gray-900 truncate">{episodes[0]?.title || title}</h4>
+          <p className="text-xs text-gray-500 truncate">{course?.subtitle || '点击课时开始学习'}</p>
         </div>
         <button className="p-2 text-gray-700 ml-2">
           <Icons.ListMusic size={24} />

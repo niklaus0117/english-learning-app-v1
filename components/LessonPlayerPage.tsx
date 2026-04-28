@@ -8,6 +8,7 @@ import { DictionaryModal } from './DictionaryModal';
 import { SentenceAnalysisModal } from './SentenceAnalysisModal';
 import { NotesTab } from './NotesTab';
 import WordTrainingPanel from './WordTrainingPanel';
+import { apiService } from '../services/api';
 
 interface LessonPlayerPageProps {
   lesson: Lesson;
@@ -15,20 +16,22 @@ interface LessonPlayerPageProps {
 }
 
 const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) => {
+  const [lessonDetail, setLessonDetail] = useState<Lesson>(lesson);
+  const [subtitles, setSubtitles] = useState(lesson.subtitles || MOCK_LESSON_TRANSCRIPT);
   const [isPlaying, setIsPlaying] = useState(false);
   const [activeSentenceId, setActiveSentenceId] = useState<string>('s1');
   const [playbackSpeed, setPlaybackSpeed] = useState(lesson.playbackRate || 1.0);
   const [showChinese, setShowChinese] = useState(true);
   const [playMode, setPlayMode] = useState<'order' | 'channel-repeat' | 'repeat' | 'shuffle' | 'single'>(lesson.loopMode || 'order');
   const [currentTime, setCurrentTime] = useState(lesson.lastPlaybackPosition || 0);
-  const [duration, setDuration] = useState(38); // Default mock duration
+  const [duration, setDuration] = useState(lesson.durationSeconds || 38); // Default mock duration
   const [showOverlayControls, setShowOverlayControls] = useState(true);
   
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [showPlayModeMenu, setShowPlayModeMenu] = useState(false);
   const [isBottomCollapsed, setIsBottomCollapsed] = useState(false);
 
-  const subtitlesToUse = lesson.subtitles || MOCK_LESSON_TRANSCRIPT;
+  const subtitlesToUse = subtitles.length ? subtitles : MOCK_LESSON_TRANSCRIPT;
 
   // New states for dictionary and sentence analysis
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
@@ -44,7 +47,46 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
   const [isTabsVisible, setIsTabsVisible] = useState(true);
   const lastScrollY = useRef(0);
 
-  const isVideo = lesson.mediaType === 'video';
+  const isVideo = lessonDetail.mediaType === 'video';
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadLessonData = async () => {
+      setLessonDetail(lesson);
+      setSubtitles(lesson.subtitles || MOCK_LESSON_TRANSCRIPT);
+      setPlaybackSpeed(lesson.playbackRate || 1.0);
+      setPlayMode(lesson.loopMode || 'order');
+      setCurrentTime(lesson.lastPlaybackPosition || 0);
+      setDuration(lesson.durationSeconds || 38);
+      setActiveSentenceId((lesson.subtitles || MOCK_LESSON_TRANSCRIPT)[0]?.id || 's1');
+
+      try {
+        const [detail, transcripts] = await Promise.all([
+          apiService.getLessonDetail(lesson.id),
+          apiService.getLessonTranscripts(lesson.id),
+        ]);
+
+        if (ignore) return;
+
+        setLessonDetail(detail);
+        setSubtitles(transcripts.length ? transcripts : (lesson.subtitles || MOCK_LESSON_TRANSCRIPT));
+        setPlaybackSpeed(detail.playbackRate || lesson.playbackRate || 1.0);
+        setPlayMode(detail.loopMode || lesson.loopMode || 'order');
+        setCurrentTime(detail.lastPlaybackPosition || lesson.lastPlaybackPosition || 0);
+        setDuration(detail.durationSeconds || lesson.durationSeconds || 38);
+        setActiveSentenceId((transcripts[0] || lesson.subtitles?.[0] || MOCK_LESSON_TRANSCRIPT[0])?.id || 's1');
+      } catch (error) {
+        console.warn('Failed to load lesson detail.', error);
+      }
+    };
+
+    loadLessonData();
+
+    return () => {
+      ignore = true;
+    };
+  }, [lesson]);
 
   // Make sure tabs are visible when switching
   useEffect(() => {
@@ -162,9 +204,9 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
     setDuration(e.currentTarget.duration);
     
     // Set initial playback position if provided and not started yet
-    if (lesson.lastPlaybackPosition && e.currentTarget.currentTime === 0) {
-        e.currentTarget.currentTime = lesson.lastPlaybackPosition;
-        setCurrentTime(lesson.lastPlaybackPosition);
+    if (lessonDetail.lastPlaybackPosition && e.currentTarget.currentTime === 0) {
+        e.currentTarget.currentTime = lessonDetail.lastPlaybackPosition;
+        setCurrentTime(lessonDetail.lastPlaybackPosition);
     }
   };
 
@@ -230,7 +272,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
 
   // Simulation of audio playback (fallback if no mediaUrl)
   useEffect(() => {
-    if (lesson.mediaUrl) return; // Skip simulation if we have real media
+    if (lessonDetail.mediaUrl) return; // Skip simulation if we have real media
 
     let interval: number;
     if (isPlaying) {
@@ -266,7 +308,19 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
       }, 100);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, activeSentenceId, duration, lesson.mediaUrl, subtitlesToUse, playMode]);
+  }, [isPlaying, activeSentenceId, duration, lessonDetail.mediaUrl, subtitlesToUse, playMode]);
+
+  useEffect(() => {
+    if (currentTime < 1) return;
+
+    const timeout = window.setTimeout(() => {
+      apiService.reportLessonProgress(lessonDetail.id, currentTime).catch(error => {
+        console.warn('Failed to report lesson progress.', error);
+      });
+    }, 1200);
+
+    return () => window.clearTimeout(timeout);
+  }, [currentTime, lessonDetail.id]);
 
   // Handle speed change
   useEffect(() => {
@@ -312,7 +366,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
     <div className="flex flex-col h-screen bg-white relative overflow-hidden">
       
       {/* --- Media Player Area (Top) --- */}
-      {isVideo && lesson.mediaUrl ? (
+      {isVideo && lessonDetail.mediaUrl ? (
           <div 
             className="w-full bg-black relative z-10 flex-shrink-0 group overflow-hidden" 
             style={{ aspectRatio: '16/9' }}
@@ -321,8 +375,8 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
           >
               <video 
                   ref={videoRef}
-                  src={lesson.mediaUrl}
-                  poster={lesson.coverUrl}
+                  src={lessonDetail.mediaUrl}
+                  poster={lessonDetail.coverUrl}
                   className="absolute inset-0 w-full h-full object-contain cursor-pointer"
                   onClick={(e) => { e.stopPropagation(); setShowOverlayControls(true); }}
                   onTimeUpdate={handleTimeUpdate}
@@ -409,8 +463,11 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                               try {
                                 await videoRef.current.requestFullscreen();
                                 // Attempt to lock to landscape on mobile devices
-                                if (screen.orientation && screen.orientation.lock) {
-                                  await screen.orientation.lock('landscape').catch(() => {
+                                const orientation = screen.orientation as ScreenOrientation & {
+                                  lock?: (orientation: 'landscape') => Promise<void>;
+                                };
+                                if (orientation.lock) {
+                                  await orientation.lock('landscape').catch(() => {
                                       // Ignore error if locking is not supported or permitted
                                   });
                                 }
@@ -434,17 +491,17 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                   <ChevronLeft size={24} />
                 </button>
                 <h1 className="text-gray-900 text-sm font-medium truncate flex-1 px-4 text-center">
-                   Saturn | A Travellers Guide To The Planet
+                   {lessonDetail.title}
                 </h1>
                 <button className="p-1 text-gray-800 active:scale-95">
                   <Icons.MoreHorizontal size={20} />
                 </button>
               </div>
               
-              {lesson.mediaUrl && (
+              {lessonDetail.mediaUrl && (
                   <audio 
                       ref={audioRef}
-                      src={lesson.mediaUrl}
+                      src={lessonDetail.mediaUrl}
                       onTimeUpdate={handleTimeUpdate}
                       onLoadedMetadata={handleLoadedMetadata}
                       onEnded={handleEnded}
@@ -473,7 +530,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
                       </div>
                   </div>
                   <div className="flex items-center text-[12px] text-gray-400">
-                      <span className="truncate max-w-[120px]">{lesson.title.split(' ')[1] || lesson.title}</span>
+                      <span className="truncate max-w-[120px]">{lessonDetail.title.split(' ')[1] || lessonDetail.title}</span>
                       <Icons.ChevronRight size={14} className="ml-1" />
                   </div>
               </div>
@@ -488,7 +545,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
               >
                   {/* Title */}
                   <h2 className="text-[17px] font-bold text-[#2A2A2A] leading-[1.3] mb-2 font-serif">
-                      Saturn | A Travellers Guide To The Planet
+                      {lessonDetail.title}
                   </h2>
 
                   {/* AI Banner */}
@@ -730,7 +787,7 @@ const LessonPlayerPage: React.FC<LessonPlayerPageProps> = ({ lesson, onBack }) =
       )}
       {showWordTraining && (
           <WordTrainingPanel 
-              lessonId={lesson.id} 
+              lessonId={lessonDetail.id} 
               onClose={() => setShowWordTraining(false)} 
           />
       )}

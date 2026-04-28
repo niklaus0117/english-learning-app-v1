@@ -3,8 +3,10 @@ import { Course, Lesson, LessonSentence } from './types';
 
 // --- CONFIGURATION ---
 export const CONFIG = {
-  USE_MOCK_DATA: true,
-  API_BASE_URL: 'https://api.example.com/v1',
+  USE_MOCK_DATA: false,
+  API_BASE_URL: '/api',
+  ONE_CLICK_MASKED_PHONE: '150****9102',
+  ONE_CLICK_PHONE_NUMBER: '15000009102',
 };
 
 // --- MOCK DATA ---

@@ -204,18 +204,10 @@ function App() {
         return (
           <CategoryDetailPage
             title={selectedChannel.title}
+            course={selectedChannel}
             onBack={() => setCurrentView('categoryList')}
             onItemClick={(item) => {
-              // Create a mock lesson out of the item to play
-              setSelectedLesson({
-                id: String(item.id),
-                title: item.title,
-                duration: item.duration || '49:58',
-                isLearned: false,
-                mediaType: 'video',
-                mediaUrl: 'https://media.w3.org/2010/05/sintel/trailer.mp4',
-                coverUrl: item.imageUrl
-              });
+              setSelectedLesson(item);
               setLessonPlayerSourceView('categoryDetail');
               setCurrentView('lessonPlayer');
             }}
@@ -472,10 +464,13 @@ function App() {
       {renderCurrentView()}
 
       {/* Login Modal */}
-      <LoginOverlay 
-        isOpen={showLoginModal} 
-        onClose={() => setShowLoginModal(false)} 
-        onLoginSuccess={() => setIsLoggedIn(true)} 
+      <LoginOverlay
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onLoginSuccess={() => {
+          setIsLoggedIn(true);
+          loadData();
+        }}
       />
     </div>
   );

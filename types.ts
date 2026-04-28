@@ -1,6 +1,7 @@
 
 export interface Course {
   id: string;
+  categoryId?: string | number;
   title: string;
   subtitle: string;
   description?: string;
@@ -13,13 +14,17 @@ export interface Course {
   author?: string;
   price?: number;
   category?: string; // For filtering in Daily Reading
+  accessType?: string;
   lessons?: Lesson[]; // Specific lessons for this course
 }
 
 export interface Lesson {
   id: string;
+  courseId?: string | number;
+  categoryId?: string | number;
   title: string;
   duration?: string;
+  durationSeconds?: number;
   isLearned: boolean;
   mediaType?: 'audio' | 'video';
   mediaUrl?: string;
@@ -28,6 +33,7 @@ export interface Lesson {
   lastPlaybackPosition?: number; // in seconds
   playbackRate?: number;
   loopMode?: 'order' | 'channel-repeat' | 'repeat' | 'shuffle' | 'single';
+  sortOrder?: number;
 }
 
 export interface LessonSentence {
@@ -43,14 +49,6 @@ export interface User {
   phoneNumber: string;
   nickname: string;
   avatar: string;
-}
-
-export interface WordItem {
-  word: string;
-  pronunciation: string;
-  pos: string; // part of speech (e.g. n. vt.)
-  translation: string;
-  isSaved?: boolean;
 }
 
 export interface WordItem {

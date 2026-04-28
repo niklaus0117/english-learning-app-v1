@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronLeft, Share, Flame, ArrowDownCircle, MessageCircle, PlayCircle, ListMusic, ChevronRight, Video, Headphones } from 'lucide-react';
 import { Course, Lesson } from '../types';
 import { MOCK_LESSONS } from '../constants';
+import { apiService } from '../services/api';
 
 interface CourseDetailPageProps {
   course: Course;
@@ -15,8 +16,34 @@ interface CourseDetailPageProps {
 
 const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ course, onBack, onLessonClick, onDownloadLesson, onBuy, downloadedLessons }) => {
   const [activeTab, setActiveTab] = useState<'directory' | 'details'>('directory');
+  const [courseDetail, setCourseDetail] = useState<Course>(course);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const loadCourseDetail = async () => {
+      setIsLoading(true);
+      try {
+        const detail = await apiService.getCourseDetail(course.id);
+        if (!ignore) setCourseDetail(detail);
+      } catch (error) {
+        console.warn('Failed to load course detail.', error);
+        if (!ignore) setCourseDetail(course);
+      } finally {
+        if (!ignore) setIsLoading(false);
+      }
+    };
+
+    setCourseDetail(course);
+    loadCourseDetail();
+
+    return () => {
+      ignore = true;
+    };
+  }, [course]);
   
-  const lessonsToDisplay = course.lessons || MOCK_LESSONS;
+  const lessonsToDisplay = courseDetail.lessons || MOCK_LESSONS;
 
   return (
     <div className="min-h-screen bg-white relative flex flex-col pb-24">
@@ -37,33 +64,33 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ course, onBack, onL
         <div className="flex gap-4">
             {/* Cover Image */}
             <div className="w-24 h-32 flex-shrink-0 rounded-lg overflow-hidden shadow-lg border border-white/20">
-                <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
+                <img src={courseDetail.imageUrl} alt={courseDetail.title} className="w-full h-full object-cover" />
             </div>
             
             {/* Text Info */}
             <div className="flex-1 flex flex-col justify-between py-1">
-                <h1 className="text-xl font-bold leading-tight line-clamp-2 mb-1">{course.title}</h1>
+                <h1 className="text-xl font-bold leading-tight line-clamp-2 mb-1">{courseDetail.title}</h1>
                 
                 {/* Stats Tags */}
                 <div className="flex flex-wrap gap-2 text-[10px] items-center text-white/90 mb-1">
                     <span className="bg-white/20 px-2 py-0.5 rounded-md flex items-center">
                         <Flame size={10} className="mr-1 text-orange-300 fill-orange-300" />
-                        {course.playCount}播放
+                        {courseDetail.playCount}播放
                     </span>
                     <span className="bg-white/20 px-2 py-0.5 rounded-md">
-                        {course.tags[0]} {/* e.g. 共137篇 */}
+                        {courseDetail.tags[0]} {/* e.g. 共137篇 */}
                     </span>
-                    {course.vocabularyCount && (
+                    {courseDetail.vocabularyCount && (
                         <span className="bg-white/20 px-2 py-0.5 rounded-md">
-                            词汇量:{course.vocabularyCount}
+                            词汇量:{courseDetail.vocabularyCount}
                         </span>
                     )}
                 </div>
 
-                <div className="text-sm font-medium opacity-90">{course.author || 'Unknown Author'}</div>
+                <div className="text-sm font-medium opacity-90">{courseDetail.author || 'Unknown Author'}</div>
                 
                 <p className="text-xs text-white/80 line-clamp-2 leading-snug mt-1">
-                    {course.description || course.subtitle}
+                    {courseDetail.description || courseDetail.subtitle}
                 </p>
             </div>
         </div>
@@ -110,6 +137,9 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ course, onBack, onL
             <div>
                 <div className="text-teal-500 text-sm font-bold mb-4">全部</div>
                 <div className="space-y-6">
+                    {isLoading && (
+                        <div className="text-xs text-gray-400">正在加载后端课时...</div>
+                    )}
                     {lessonsToDisplay.map((lesson) => (
                         <div 
                             key={lesson.id} 
@@ -173,7 +203,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ course, onBack, onL
             onClick={onBuy}
             className="flex-1 bg-orange-500 text-white font-bold text-lg h-12 rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform"
           >
-              ¥{course.price ? course.price.toFixed(2) : '0.00'}
+              ¥{courseDetail.price ? courseDetail.price.toFixed(2) : '0.00'}
           </button>
 
           {/* Mini Player Floating (Visual Only) */}
